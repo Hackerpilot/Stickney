@@ -17,10 +17,11 @@ struct HashSet(T)
 	body
 	{
 		import std.conv;
-		allocator = BlockAllocator(blockSize);
+		allocator = cast(BlockAllocator*) .malloc(BlockAllocator.sizeof);
+		emplace(allocator, blockSize);
 		buckets = (cast(Bucket*) .malloc(bucketCount * (SList!T).sizeof))[0 .. bucketCount];
 		foreach (ref bucket; buckets)
-			emplace(&bucket, &allocator);
+			emplace(&bucket, allocator);
 	}
 
 	~this()
@@ -28,6 +29,8 @@ struct HashSet(T)
 		foreach (ref bucket; buckets)
 			typeid(Bucket).destroy(&bucket);
 		.free(buckets.ptr);
+		typeid(BlockAllocator).destroy(allocator);
+		.free(allocator);
 	}
 
 	bool contains(T value)
@@ -166,12 +169,14 @@ private:
 	void rehash()
 	{
 		import std.conv;
+		auto newAllocator = cast(BlockAllocator*) .malloc(BlockAllocator.sizeof);
+		emplace(newAllocator, allocator.blockSize);
 		immutable newBucketCount = buckets.length << 1;
 		Bucket[] oldBuckets = buckets;
 		buckets = (cast(Bucket*) .malloc(newBucketCount
 			* Bucket.sizeof))[0 .. newBucketCount];
 		foreach (ref bucket; buckets)
-			emplace(&bucket, &allocator);
+			emplace(&bucket, newAllocator);
 		foreach (ref Bucket bucket; oldBuckets)
 		{
 			foreach (ref Node item; bucket[])
@@ -182,6 +187,9 @@ private:
 			typeid(Bucket).destroy(&bucket);
 		}
 		.free(oldBuckets.ptr);
+		typeid(BlockAllocator).destroy(allocator);
+		.free(allocator);
+		allocator = newAllocator;
 	}
 
 	static struct Node
@@ -194,7 +202,7 @@ private:
 
 	Bucket[] buckets;
 
-	BlockAllocator allocator = void;
+	BlockAllocator* allocator;
 
 	size_t _length;
 }

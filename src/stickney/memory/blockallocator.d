@@ -74,6 +74,8 @@ public:
 
 	enum padding = Block.sizeof;
 
+	immutable size_t blockSize;
+
 private:
 
 	void[] allocateInBlock(Block* block, size_t byteCount)
@@ -112,7 +114,6 @@ private:
 		return rem ? s + base - rem : s;
 	}
 
-	immutable size_t blockSize;
 	Block* rootBlock;
 }
 
