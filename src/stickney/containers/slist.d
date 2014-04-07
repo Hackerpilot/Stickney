@@ -31,20 +31,24 @@ struct SList(T)
 
 	void clear()
 	{
-		allocator.deallocateAll();
+		if (ownAllocator)
+			allocator.deallocateAll();
 		_length = 0;
+		rootNode = null;
 	}
 
-	void put(T t)
+	void insert(T t)
 	{
 		Node* n = allocateNode();
 		n.next = rootNode;
 		n.value = t;
 		rootNode = n;
+		if (_length == 0)
+			assert (n.next is null);
 		_length++;
 	}
 
-	alias insert = put;
+	alias put = insert;
 
 	size_t remove(T t)
 	{
